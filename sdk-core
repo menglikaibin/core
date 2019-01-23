@@ -1,0 +1,183 @@
+#!/usr/bin/env php
+<?php
+include_once __DIR__ . '/core_Access.php';
+
+$argv1 = @$argv[1] ? @$argv[1] : '';
+
+switch ($argv1) {
+    case '-h':
+        _h();
+        break;
+    case '-t':
+        _t();
+        break;
+    case '-g':
+        echo _g(@$argv[2],@$argv[3]);
+        break;
+    default:
+        echo "参数无效！";
+}
+die;
+
+/**
+ * 获得帮助信息
+ */
+function _h()
+{
+
+}
+
+/**
+ * 获得所有实现的类和类说明
+ */
+function _t()
+{
+    $dir = __DIR__ . '/inventory/';
+    if (is_dir($dir)) {                                                                            //检测是否为目录
+
+        if ($dh = opendir($dir)) {                                                                 //打开目录
+
+            while (($file = readdir($dh)) != false) {                                              //获得文件
+
+                if ($file != '.' && $file != '..' && $file != 'public_Extends.php' && $file != 'parameter_Standard.php')
+                {                                                                                  //不包括 . | ..
+                    $class_name = substr($file,0,strpos($file, '.php'));               //去除后缀名
+                    //文件名的全路径 包含文件名
+                    $filePath = $dir . $file;                                                      //拼接文件路径
+
+                    include ($filePath);                                                           //加载文件
+
+                    $ReflectionClass = new ReflectionClass($class_name);                           //反射类
+
+                    $Reflection = $ReflectionClass->getDocComment();                               //获得类的注释
+
+                    $Reflection = strstr($Reflection,'function:',false);         //整理注释
+
+                    $search = array('function: ',"*/","\r","\n");                                  //整理注释
+
+                    $Reflection = str_replace($search,'',$Reflection);                      //整理注释
+
+                    echo $class_name."：".$Reflection."\n";                                        //显示类名和功能
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 接口类脚手架
+ */
+function _g($class_Name,$url)
+{
+    if (!is_string($class_Name))
+    {
+        throw new Exception('文件名格式不正确！');
+    }
+
+    if (!is_string($url))
+    {
+        throw new Exception('服务器请求地址不正确！');
+    }
+
+    $dir_File = __DIR__ . "/inventory/$class_Name.php";
+
+    if (file_exists($dir_File))
+    {
+        throw new Exception('接口类已经存在！');
+        die;
+    }else{
+        $myfile = fopen($dir_File, "w");
+        $txt = fwrite_c($class_Name,$url);
+        fwrite($myfile, $txt);
+        fclose($myfile);
+
+        echo "create ".$class_Name.".php succeed!";
+        die;
+    }
+}
+
+/**
+ * 接入文件内容
+ * @param $class_Name   类名
+ * @param $url          接口路径
+ * @return string       返回
+ */
+function fwrite_c($class_Name,$url)
+{
+    $date = date('Y/m/d');
+    $time = date('H:s');
+return <<<EOT
+<?php
+/**
+ * User: *****
+ * Date: $date
+ * Time: $time
+ * function: ******
+ */
+
+class $class_Name extends public_Extends implements core_Class_Norm
+{
+    private \$parameter;                                                                 //参数
+    private \$url = '$url';                                                              //接口URL地址
+    private \$required_Parameter = array('*');                                           //接口所用参数
+
+    /**
+     * 获得接口URL
+     * @return mixed|string
+     */
+    public function get_Url()
+    {
+        return \$this->url;
+    }
+
+    /**
+     * 获得接口所用参数
+     * @return array|mixed
+     */
+    public function required_Parameter()
+    {
+        return \$this->required_Parameter;
+    }
+
+    /**
+     * 验证参数
+     * @param 参数 \$parameter
+     * @return \$this|mixed
+     */
+    public function set_Parameter(\$parameter)
+    {
+        /**
+         * 查看所有参数和检测方法
+         * \$parameter_Standard = new parameter_Standard();
+         * \$parameter_Standard->get_All();
+         */
+
+        \$required_Parameter = \$this->required_Parameter();
+        \$parameter_Standard = new parameter_Standard(\$parameter,\$required_Parameter);
+
+        \$this->parameter = \$parameter_Standard->credible_Parameter;
+
+        return \$this;
+    }
+
+    /**
+     * 提交到服务器
+     * @return mixed
+     * @throws Exception
+     */
+    public function production()
+    {
+        \$parameter = \$this->parameter;
+
+        \$url = \$this->get_Url();
+
+        return \$this->server_Submit(\$url,\$parameter);
+    }
+
+
+}
+
+
+
+EOT;
+}
